@@ -1,86 +1,151 @@
 import { useState, useEffect } from 'react'
 import { ethers } from "ethers"
-import { Row, Col, Card, Button } from 'react-bootstrap'
+import { Row, Form, Button, Card } from 'react-bootstrap'
+import { Link } from "react-router-dom";
+import React from "react";
+import { Spinner } from 'react-bootstrap'
 
 const Home = ({ contract, account }) => {
-    const [items, setItems] = useState([])
-    const [loading, setLoading] = useState(true)
-    const loadMarketplaceItems = async () => {
-        const productCount = await contract.productCount()
-        let items = []
-        for(let i=1; i <= productCount; ++i){
-            const item = await contract.products(i)
-            if(item.isSellable && item.isUpForSale){
-                // Add item to items array
-                const owner = await contract.users(item.ownerAddress)
-                items.push({
-                    name: item.name,
-                    price: item.price,
-                    itemId: item.id,
-                    //seller: owner.companyName
-                    seller: item.ownerAddress
-                })
-            }
-        }
-        console.log("Item list created in loadMarketplaceItems()")
-        console.log(items)
-        setItems(items)
-        setLoading(false)
+    const [productId, setProductId] = useState(null)
+    const [displayProduct, setdisplayProduct] = useState(false)
+    const [productDetails, setProductDetails] = useState({})
+    const [productCount, setProductCount] = useState(0)
+    const [linkAddr, setLinkAddr] = useState("/")
+    const [loading, setLoading] = useState(false)
+    const [isAuthenticUser, setUserAuthentication] = useState(false)
+  
+  const getProduct = async () => {
+    setdisplayProduct(false);
+    if (productId == null) {
+        alert("Product ID is needed!");
+        return;
+    }else if(productId <= 0){
+        alert("Product ID is invalid!");
+        return;
     }
+    //setLoading(true);
 
-    const buyMarketItems = async (item) => {
-        if(item.seller.toLowerCase() === account){
-            alert("Can't sell to yourself!")
-        }else{
-            let today = new Date().toLocaleDateString()
-            await (await contract.purchaseProduct(item.itemId, today, { value: item.price })).wait()
-            loadMarketplaceItems()
+    const _productCount = await contract.productCount();
+    setProductCount(_productCount);
+
+    const currentProduct = await contract.products(productId);
+    const owner = await contract.users(currentProduct.ownerAddress);
+
+    setTimeout(function(){ 
+        let details = {
+            id: currentProduct.id.toNumber(),
+            name: currentProduct.name,
+            price: ethers.utils.formatEther(currentProduct.price),
+            seller: owner.companyName,
+            ownerAddress: currentProduct.ownerAddress.toLowerCase(),
+            isUpForSale: currentProduct.isUpForSale
+            //linkAddr: "/view-product/" + currentProduct.id.toNumber()
         }
+        setProductDetails(details);
+        setLinkAddr("/view-product/" + details.id);
+        console.log("LINK-ADDR:")
+        console.log(linkAddr);
+    
+        setdisplayProduct(true);
+        //setLoading(false);
+        setProductId(null);
+    }, 500); 
+  }
+
+  const userAuthentication = async () => {
+    const currentUser = await contract.users(account);
+    console.log("USER AUTHENTICATION:")
+    console.log("Account:")
+    console.log(account)
+    console.log("currentUser:")
+    console.log(currentUser)
+    console.log("currentUser.accountAddress:")
+    console.log(currentUser.accountAddress)
+
+    const admin = await contract.admin()
+    console.log("admin:")
+    console.log(admin)
+
+    if(admin.toLowerCase() === account || currentUser.accountAddress != "0x0000000000000000000000000000000000000000"){
+      setUserAuthentication(true);
+    }else{
+      setUserAuthentication(false);
     }
+  }
 
-    useEffect(() => {
-        loadMarketplaceItems()
-    }, [])
+  useEffect(() => {
+    userAuthentication()
+  }, [])
 
-    if (loading) return (
-        <main style={{ padding: "1rem 0" }}>
-            <h2>Loading...</h2>
-        </main>
-    )
-
-    return (
-        <div className="flex justify-center">
-            {items.length > 0 ?
-                <div className="px-5 container">
-                <Row xs={1} md={2} lg={4} className="g-4 py-5">
-                    {items.map((item, idx) => (
-                    <Col key={idx} className="overflow-hidden">
-                        <Card>
+  if (loading) return (
+    <main style={{ padding: "1rem 0" }}>
+      <h2>Loading...</h2>
+    </main>
+  )
+  return (
+    <div className="container-fluid mt-5">
+      {isAuthenticUser ? 
+      <div className="row">
+        <main role="main" className="col-lg-12 mx-auto" style={{ maxWidth: '1000px' }}>
+          <div className="content mx-auto">
+            <Row className="g-4">
+              <Form.Control onChange={(e) => setProductId(e.target.value)} size="lg" required type="number" placeholder="Enter the ID of the product you are looking for." />
+              <div className="d-grid px-0">
+                <Button onClick={getProduct} variant="primary" size="lg" className = 'mb-5'>
+                  Get Product
+                </Button>
+              </div>
+            </Row>
+          </div>
+          <div class='m-7'>
+              {displayProduct ? 
+              (productDetails.id > 0 && productDetails.id <= productCount ?
+                <Card className='p-7'>
+                    <Card.Body color="secondary">
+                        <Card.Title>{productDetails.id}</Card.Title>
+                        <Card.Text>
+                            <div>Product Name: {productDetails.name}</div>
+                            <div>Owner: {productDetails.seller}</div>
+                            {productDetails.isUpForSale == true ?
+                            <div>Price: {productDetails.price} ETH</div>
+                            : (
+                                <div>Product is not up for Sale.</div>
+                            )}
+                        </Card.Text>
+                    </Card.Body>
+                    <Card.Footer>
+                        <div className='d-grid'>
+                        <Link to={linkAddr}>
+                            <Button variant="primary" size="lg">
+                                View
+                            </Button>
+                        </Link>
+                        </div>
+                    </Card.Footer>
+                </Card>
+                : (
+                    <Card className='p-7'>
                         <Card.Body color="secondary">
-                            <Card.Title>{item.name}</Card.Title>
                             <Card.Text>
-                                <div>Product Id: {item.itemId.toNumber()}</div>
-                                <div>Seller: {item.seller}</div>
+                                <div>Product Not found in the database.</div>
                             </Card.Text>
                         </Card.Body>
-                        <Card.Footer>
-                            <div className='d-grid'>
-                            <Button onClick={() => buyMarketItems(item)} variant="primary" size="lg">
-                                Buy for {ethers.utils.formatEther(item.price)} ETH
-                            </Button>
-                            </div>
-                        </Card.Footer>
-                        </Card>
-                    </Col>
-                    ))}
-                </Row>
-            </div>
-            : (
-            <main style={{ padding: "1rem 0" }}>
-                <h2>No listed assets</h2>
-            </main>
-            )}
+                    </Card>
+                ))
+                :(
+                   <Card className='p-7'></Card> 
+                )}
+          </div>
+        </main>
+      </div>
+      : (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+          <Spinner animation="border" style={{ display: 'flex' }} />
+          <p className='mx-3 my-0'>Cannot access this private blockchain. User registration needed.</p>
         </div>
-    );
+      )}
+    </div>
+  );
 }
+
 export default Home

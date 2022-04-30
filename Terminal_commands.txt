@@ -2,8 +2,21 @@ PROJECT SETUP
 
 SYSTEM DEPENDENCIES:
 nodejs (version >=16.14.0 and <=17.0.1)
+        sudo npm install -g n
+        sudo n 16.14.2
+
 Hardhat: npm install --save-dev hardhat@2.8.4
 Metamask
+
+Connect Hardhat to Metamask:
+1. Start Hardhat Blockchain in Powershell.
+2. Add a new network in Metamask with the following details:
+        Network Name: <anything>
+        New RPC URL: http://127.0.0.1:8545
+        Chain ID: 31337
+        Currency Symbol: ETH
+3. Connect to this network.
+4. Import Hardhat accounts using private key.
 
 PROJECT DEPENDENCIES:
 npm install
@@ -18,3 +31,9 @@ npm run deploy
 
 RUN THE PROJECT:
 npm run start
+
+------------------------------------------------------
+COMMON ERROR:
+
+In case of transaction failure in Metamask,
+        go to Settings -> Advanced -> Reset Account

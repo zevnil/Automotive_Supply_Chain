@@ -3,7 +3,7 @@ import {
 } from "react-router-dom";
 import { Navbar, Nav, Button, Container } from 'react-bootstrap'
 
-const Navigation = ({ web3Handler, account }) => {
+const Navigation = ({ web3Handler, account, admin }) => {
     return (
         <Navbar expand="lg" bg="secondary" variant="dark">
             <Container>
@@ -12,13 +12,19 @@ const Navigation = ({ web3Handler, account }) => {
                 </Navbar.Brand>
                 <Navbar.Toggle aria-controls="responsive-navbar-nav" />
                 <Navbar.Collapse id="responsive-navbar-nav">
+                {! (admin === account) ? (
                     <Nav className="me-auto">
                         <Nav.Link as={Link} to="/">Home</Nav.Link>
                         <Nav.Link as={Link} to="/profile">Profile</Nav.Link>
                         <Nav.Link as={Link} to="/add-product">Add Product</Nav.Link>
                         <Nav.Link as={Link} to="/marketplace">Marketplace</Nav.Link>
+                    </Nav>
+                ) : (
+                    <Nav className="me-auto">
+                        <Nav.Link as={Link} to="/">Home</Nav.Link>
                         <Nav.Link as={Link} to="/add-user">Add User</Nav.Link>
                     </Nav>
+                )}
                     <Nav>
                         {account ? (
                             <Nav.Link

@@ -29,9 +29,9 @@ contract AutomotiveSupplyChain {
         bool isSellable;
         bool isUpForSale;
         uint totalStateLogs;
-        mapping (uint => State) stateLogs;
+        State[] stateLogs;
         uint totalComponents;
-        mapping (uint => uint) components;   //Component no - Product ID
+        uint[] components;
     }
 
     event ProductAdded(
@@ -70,7 +70,8 @@ contract AutomotiveSupplyChain {
 
     event componentAdded(
         uint productId,
-        uint componentId
+        uint componentId,
+        uint[] arr
     );
 
     event productPutOnSale(
@@ -98,6 +99,25 @@ contract AutomotiveSupplyChain {
         for (uint i = 0; i < bytes_a.length; i++) bytes_c[k++] = bytes_a[i];
         for (uint i = 0; i < bytes_b.length; i++) bytes_c[k++] = bytes_b[i];
         return string(bytes_c);
+    }
+
+    function toString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
     }
 
     function addUser(address payable _accountAddress, string memory _companyName, string memory _companyRegistrationNumber, 
@@ -136,26 +156,44 @@ contract AutomotiveSupplyChain {
         require(_productId <= productCount, "Invalid Product Id");
         require(msg.sender == products[_productId].ownerAddress, "Only the owner can update their product");
         State memory newState = State({owner: msg.sender, description: info, date: _date});
-        products[_productId].stateLogs[ products[_productId].totalStateLogs ] = newState;
-        //products[_productId].totalStateLogs = products[_productId].totalStateLogs +1;
         products[_productId].totalStateLogs++;
+        products[_productId].stateLogs.push(newState);
 
         emit stateAdded(_productId, msg.sender, info, _date);
     }
 
-    function addComponent(uint _productId, uint _componentId) public {
+    function getStates(uint _productId) public view returns (State[] memory) {
+        return products[_productId].stateLogs;
+    }
+
+    function addComponent(uint _productId, uint _componentId, string memory _date) public {
         require(_productId <= productCount, "Invalid Product Id");
         require(_componentId <= productCount, "Invalid Component Id");
+        require(_componentId != _productId, "Component ID can't be equal to the product ID");
         require(msg.sender == products[_productId].ownerAddress, "Only the owner can update their product");
-        products[_productId].components[ products[_productId].totalComponents ] = _componentId;
         products[_productId].totalComponents++;
+        products[_productId].components.push(_componentId);
 
         //Component is not sellable individually
         products[_componentId].isSellable = false;
         products[_componentId].isUpForSale = false;
         products[_componentId].ownerAddress = payable(msg.sender);
 
-        emit componentAdded(_productId, _componentId);
+        string memory logDesc = "Product ";
+        logDesc = concat(logDesc, toString(_componentId));
+        logDesc = concat(logDesc, " added as Component.");
+        addState(_productId, logDesc, _date);
+
+        logDesc = "Became a component of Product ";
+        logDesc = concat(logDesc, toString(_productId));
+        logDesc = concat(logDesc, ". Owner updated.");
+        addState(_componentId, logDesc, _date);
+
+        emit componentAdded(_productId, _componentId, products[_productId].components);
+    }
+
+    function getComponents(uint _productId) public view returns (uint[] memory) {
+        return products[_productId].components;
     }
 
     function putProductOnSale(uint _productId, uint _price) public {

@@ -10,7 +10,10 @@ const AddUser = ({ contract, account }) => {
     const [accountAddress, setAccountAddress] = useState('')
   
   const uploadToBlockchain = async () => {
-    if (!name || !regNo || !description || !accountAddress) return
+    if (!name || !regNo || !description || !accountAddress) {
+      alert("All fields are mandatory!");
+      return;
+    }
 
     await(await contract.addUser(accountAddress, name, regNo, description)).wait()
     console.log("User added Successfully!!")
