@@ -23,6 +23,8 @@ npm install
 npm install react-router-dom@6
 
 ------------------------------------------------------
+TO RUN THE PROJECT - 
+
 START BLOCKCHAIN:
 npx hardhat node
 

@@ -7,7 +7,8 @@ import { Spinner } from 'react-bootstrap'
 const Marketplace = ({ contract, account }) => {
     const [items, setItems] = useState([])
     const [loading, setLoading] = useState(true)
-    
+    const [isAuthenticUser, setUserAuthentication] = useState(false)
+
     const loadMarketplaceItems = async () => {
         const productCount = await contract.productCount()
         let items = []
@@ -42,7 +43,29 @@ const Marketplace = ({ contract, account }) => {
         }
     }
 
+    const userAuthentication = async () => {
+        const currentUser = await contract.users(account);
+        console.log("USER AUTHENTICATION:")
+        console.log("Account:")
+        console.log(account)
+        console.log("currentUser:")
+        console.log(currentUser)
+        console.log("currentUser.accountAddress:")
+        console.log(currentUser.accountAddress)
+    
+        const admin = await contract.admin()
+        console.log("admin:")
+        console.log(admin)
+    
+        if(admin.toLowerCase() === account || currentUser.accountAddress != "0x0000000000000000000000000000000000000000"){
+          setUserAuthentication(true);
+        }else{
+          setUserAuthentication(false);
+        }
+      }
+
     useEffect(() => {
+        userAuthentication()
         loadMarketplaceItems()
     }, [])
 
@@ -54,7 +77,8 @@ const Marketplace = ({ contract, account }) => {
 
     return (
         <div className="flex justify-center">
-            {items.length > 0 ?
+            {isAuthenticUser ? 
+            (items.length > 0 ?
                 <div className="px-5 container">
                 <Row xs={1} md={2} lg={4} className="g-4 py-5">
                     {items.map((item, idx) => (
@@ -92,7 +116,13 @@ const Marketplace = ({ contract, account }) => {
             <main style={{ padding: "1rem 0" }}>
                 <h2>No listed assets</h2>
             </main>
-            )}
+            ))
+        : (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+                <Spinner animation="border" style={{ display: 'flex' }} />
+                <p className='mx-3 my-0'>Cannot access this private blockchain. User registration needed.</p>
+            </div>
+        )}
         </div>
     );
 }
